@@ -1,4 +1,4 @@
-# Firewall Documentation 
+# FIREWALL DOCUMENTATION
 
 **Last Updated:** 2025-08-11  
 **Purpose:** Secure and manage traffic in home network
