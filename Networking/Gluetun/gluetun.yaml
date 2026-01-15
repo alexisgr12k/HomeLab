@@ -1,0 +1,27 @@
+version: "3"
+services:
+  gluetun:
+    image: qmcgaw/gluetun:latest
+    container_name: gluetun
+    # line above must be uncommented to allow external containers to connect.
+    # See https://github.com/qdm12/gluetun-wiki/blob/main/setup/connect-a-container-to-gluetun.md#external-container-to-gluetun
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      - 8888:8888/tcp # HTTP proxy
+      - 8388:8388/tcp # Shadowsocks
+      - 8388:8388/udp # Shadowsocks
+      # Other services
+      # qBittorrent
+      - QBITTORRENT_WEB_UI_PORT:QBITTORRENT_WEB_UI_PORT
+      # Other containers that are being routed via the container where you still want access the resources like web ui on local network
+      - PORT:PORT
+    volumes:
+      - /volume1/docker/gluetun_config
+    environment:
+      # I specify the PUID and PGID but this is optional (default is 1000,1000), description from Wiki "User ID/Group ID to run as non root and for ownership of files written"
+      #- PUID=UID
+      #- PGID=GID
+      #- The rest of this yaml file is wireguard information that should most definitely not be shared
