@@ -1,0 +1,21 @@
+services:
+  homepage:
+    image: ghcr.io/gethomepage/homepage:latest
+    container_name: homepage
+    restart: unless-stopped
+    environment:
+      - HOMEPAGE_ALLOWED_HOSTS= #used this to allow reverse proxy addressing and machine port access
+    ports:
+      - #not snitching on myself lol
+    volumes:
+      - ./config:/app/config
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - proxy-service
+
+
+
+networks:
+  proxy-service:
+    external: true
+    name: proxy
