@@ -1,0 +1,169 @@
+name: librenms
+services:
+  db:
+    image: mariadb:10
+    container_name: librenms_db
+    ports:
+      - "Whatever port you want the DB to listen on"
+    command:
+      - "mysqld"
+      - "--innodb-file-per-table=1"
+      - "--lower-case-table-names=0"
+      - "--character-set-server=utf8mb4"
+      - "--collation-server=utf8mb4_unicode_ci"
+    volumes:
+      - "./db:/var/lib/mysql"
+    environment:
+      - "TZ=${TZ}"
+      - "MARIADB_RANDOM_ROOT_PASSWORD=yes"
+      - "MYSQL_DATABASE=${MYSQL_DATABASE}"
+      - "MYSQL_USER=${MYSQL_USER}"
+      - "MYSQL_PASSWORD=${MYSQL_PASSWORD}"
+    restart: unless-stopped
+    networks:
+      - proxy
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: librenms_redis
+    ports:
+      - "6379:6379"
+    environment:
+      - "TZ=${TZ}"
+    restart: unless-stopped
+    networks:
+      - proxy
+
+  snmpd:
+    image: crazymax/snmpd
+    container_name: librenms_snmpd
+    restart: unless-stopped
+    privileged: true
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    env_file:
+      - "./snmp.env"
+    networks:
+      - proxy
+
+  msmtpd:
+    image: crazymax/msmtpd:latest
+    container_name: librenms_msmtpd
+    env_file:
+      - "./msmtpd.env"
+    restart: unless-stopped
+    networks:
+      - proxy
+
+  librenms:
+    image: librenms/librenms:latest
+    container_name: librenms
+    hostname: librenms
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    network_mode: host
+    depends_on:
+      - db
+      - redis
+      - msmtpd
+    volumes:
+      - "./librenms:/data"
+    env_file:
+      - "./librenms.env"
+    environment:
+      - "TZ=${TZ}"
+      - "PUID=${PUID}"
+      - "PGID=${PGID}"
+      - "DB_HOST=127.0.0.1"
+      - "DB_NAME=${MYSQL_DATABASE}"
+      - "DB_USER=${MYSQL_USER}"
+      - "DB_PASSWORD=${MYSQL_PASSWORD}"
+      - "DB_TIMEOUT=60"
+    restart: unless-stopped
+
+  dispatcher:
+    image: librenms/librenms:latest
+    container_name: librenms_dispatcher
+    hostname: librenms-dispatcher
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    network_mode: host
+    depends_on:
+      - librenms
+    volumes:
+      - "./librenms:/data"
+    env_file:
+      - "./librenms.env"
+    environment:
+      - "TZ=${TZ}"
+      - "PUID=${PUID}"
+      - "PGID=${PGID}"
+      - "DB_HOST=127.0.0.1"
+      - "DB_NAME=${MYSQL_DATABASE}"
+      - "DB_USER=${MYSQL_USER}"
+      - "DB_PASSWORD=${MYSQL_PASSWORD}"
+      - "DB_TIMEOUT=60"
+      - "DISPATCHER_NODE_ID=dispatcher1"
+      - "SIDECAR_DISPATCHER=1"
+      - "REDIS_HOST=127.0.0.1"
+    restart: unless-stopped
+
+  syslogng:
+    image: librenms/librenms:latest
+    container_name: librenms_syslogng
+    hostname: librenms-syslogng
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    network_mode: host
+    depends_on:
+      - librenms
+    volumes:
+      - "./librenms:/data"
+    env_file:
+      - "./librenms.env"
+    environment:
+      - "TZ=${TZ}"
+      - "PUID=${PUID}"
+      - "PGID=${PGID}"
+      - "DB_HOST=127.0.0.1"
+      - "DB_NAME=${MYSQL_DATABASE}"
+      - "DB_USER=${MYSQL_USER}"
+      - "DB_PASSWORD=${MYSQL_PASSWORD}"
+      - "DB_TIMEOUT=60"
+      - "SIDECAR_SYSLOGNG=1"
+    restart: unless-stopped
+
+  snmptrapd:
+    image: librenms/librenms:latest
+    container_name: librenms_snmptrapd
+    hostname: librenms-snmptrapd
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    network_mode: host
+    depends_on:
+      - librenms
+    volumes:
+      - "./librenms:/data"
+    env_file:
+      - "./librenms.env"
+    environment:
+      - "TZ=${TZ}"
+      - "PUID=${PUID}"
+      - "PGID=${PGID}"
+      - "DB_HOST=127.0.0.1"
+      - "DB_NAME=${MYSQL_DATABASE}"
+      - "DB_USER=${MYSQL_USER}"
+      - "DB_PASSWORD=${MYSQL_PASSWORD}"
+      - "DB_TIMEOUT=60"
+      - "SIDECAR_SNMPTRAPD=1"
+    restart: unless-stopped
+
+networks:
+  proxy:
+    external: true
