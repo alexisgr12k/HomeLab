@@ -1,0 +1,20 @@
+services:
+  app:
+    image: 'jc21/nginx-proxy-manager:latest'
+    container_name: nginx-proxy-manager
+    hostname: nginx
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '81:81'
+      - '443:443'
+    volumes:
+      - ./data:/data
+      - ./letsencrypt:/etc/letsencrypt
+    networks:
+      - proxy-service  # This is a local alias for this file
+
+networks:
+  proxy-service:       # The alias used above
+    external: true
+    name: proxy        # The ACTUAL name from 'docker network ls'
